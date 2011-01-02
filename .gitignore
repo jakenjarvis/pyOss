@@ -1,0 +1,4 @@
+# http://progit.org/book/ja/ch2-2.html#id25
+
+# サブディレクトリを含む *.pyc を無視したい
+*.pyc
