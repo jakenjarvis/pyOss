@@ -45,7 +45,14 @@ import sys
 import os
 import codecs
 import re
+import copy
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+from chardet.universaldetector import UniversalDetector
+
+import CommonLib
 from LinkedTreeObject import LinkedTreeObject
 
 from UserlistLib import EnumCommandType
@@ -706,6 +713,7 @@ class Masterlist(Group):
         Group.__init__(self, None, None, False)
 
         self._fullpathfilename = fullpathfilename.lstrip().rstrip()
+        self._encoding = "cp1252"
         self._recording = False
         self._archiverecord = []
 
@@ -1491,12 +1499,13 @@ class Masterlist(Group):
         return self
 
 
-    def Save(self, fullpathfilename = u""):
+    def Save(self, fullpathfilename = u"", encoding=None):
         """
             現在の状態を指定したファイルに保存します。
             ファイル名の指定を省略した場合は、最後にLoad又はSaveしたファイルに保存します。
 
             :param string fullpathfilename: 保存するファイル名
+            :param string encoding: ファイルのエンコーディング（公式は「Windows-1252:'cp1252'」又は「UTF-8 BOM有:'utf-8-sig'」）
         """
         if len(fullpathfilename) != 0:
             self._fullpathfilename = fullpathfilename.lstrip().rstrip()
@@ -1509,19 +1518,58 @@ class Masterlist(Group):
         for waste in self._getWasteBlock():
             waste.Parent().DeleteChild(waste)
 
-        filemasterlist = codecs.open(self._fullpathfilename, "wU", "shift_jis")
+        # エンコーディング判定
+        if encoding is not None:
+            self._encoding = encoding
+        #print u"Save encoding: %s" % (self._encoding)
+
+        # --------------------------------------------------
+        # エンコードエラー時の処理定義
+        # --------------------------------------------------
+        if getattr(self, "OnEncodingErrorFromSave", None) == None:
+            def _onEncodingErrorFromSave(linestring, linecount, encoding):
+                # コマンドプロンプトはcp932(shift-jisのMicrosoft拡張)で表示するため、暗黙の文字コード変換が行われる。
+                # そのため、linestringをprintすると、cp932に存在しない文字は表示できずにエラーになってしまう。
+                # これは回避不能なので、表示しない動作をデフォルトとする。
+                print u"UNICODE(%s) encoding error! skip line: %s" % (encoding, linecount)
+                return
+            self.OnEncodingErrorFromSave = _onEncodingErrorFromSave
+
+        linecount = 0
+
+        filemasterlist = codecs.open(self._fullpathfilename, "wU", self._encoding)
         try:
-            filemasterlist.write(self.MasterlistOutput())
+            #filemasterlist.write(self.MasterlistOutput())
+            for object in self.EachRecursion():
+                if isinstance(object, Line):
+                    linecount += 1
+                    linestring = u""
+                    # --------------------------------------------------
+                    # Encodingの変換に失敗する文字が使われている場合は削除する。
+                    # --------------------------------------------------
+                    try:
+                        temp = object.LineString.encode(self._encoding)
+                        linestring = object.LineString
+                    except UnicodeEncodeError:
+                        param_linestring = copy.copy(linestring)
+                        param_linecount = copy.copy(linecount)
+                        param_encoding = copy.copy(self._encoding)
+                        self.OnEncodingErrorFromSave(param_linestring, param_linecount, param_encoding)
+                        linestring = u""
+                    linestring = u"%s\r\n" % (linestring)
+                    filemasterlist.write(linestring)
         finally:
             filemasterlist.close()
         return self
 
-    def Load(self, fullpathfilename = u""):
+    def Load(self, fullpathfilename = u"", encoding=None):
         """
             指定したファイルからマスタリストを読み込み、構成を解析します。
             ファイル名の指定を省略した場合は、最後にLoad又はSaveしたファイルから読み込みます。
+            *encoding* にエンコーディング文字を指定すると、指定したコードで読み込みます。省略した場合は自動判定します。
 
             :param string fullpathfilename: 読み込むファイル名
+            :param string encoding: ファイルのエンコーディング（公式は「Windows-1252:'cp1252'」又は「UTF-8 BOM有:'utf-8-sig'」）
         """
         if len(fullpathfilename) != 0:
             self._fullpathfilename = fullpathfilename.lstrip().rstrip()
@@ -1536,6 +1584,42 @@ class Masterlist(Group):
                 self.DeleteChild(child)
 
         # --------------------------------------------------
+        # エンコーディング判定
+        # --------------------------------------------------
+        if encoding is None:
+            detector = UniversalDetector()
+            detector.reset()
+            for line in file(self._fullpathfilename, 'rb'):
+                detector.feed(line)
+                if detector.done:
+                    break
+            detector.close()
+            encoding = detector.result["encoding"]
+        self._encoding = encoding
+        #print u"Load encoding: %s" % (self._encoding)
+
+        # --------------------------------------------------
+        # デコードエラー時の処理定義
+        # --------------------------------------------------
+        if getattr(self, "OnDecodingErrorFromLoad", None) == None:
+            def _onDecodingErrorFromLoad(linecount, linestring, encoding):
+                # コマンドプロンプトはcp932(shift-jisのMicrosoft拡張)で表示するため、暗黙の文字コード変換が行われる。
+                # そのため、linestringをprintすると、cp932に存在しない文字は表示できずにエラーになってしまう。
+                # これは回避不能なので、表示しない動作をデフォルトとする。
+                print u"UNICODE(%s) decoding error! skip line: %s" % (encoding, linecount)
+                return None
+            self.OnDecodingErrorFromLoad = _onDecodingErrorFromLoad
+
+        # --------------------------------------------------
+        # 行オブジェクト生成時の処理定義
+        # --------------------------------------------------
+        if getattr(self, "OnCreateLineObject", None) == None:
+            def _onCreateLineObject(linecount, linestring):
+                # 行オブジェクトの作成（行補正機能を有効にする）
+                return Line(linestring, True)
+            self.OnCreateLineObject = _onCreateLineObject
+
+        # --------------------------------------------------
         # masterlistの読み込みとオブジェクトへの展開
         # --------------------------------------------------
         thisGroup = self
@@ -1544,25 +1628,39 @@ class Masterlist(Group):
 
         countbegingroup = 0
         countendgroup = 0
-        countline = 0
+        linecount = 0
 
         filemasterlist = open(self._fullpathfilename, "rU")
         #filemasterlist = codecs.open(self._fullpathfilename, "rU", "shift_jis")
         try:
             for linestring in filemasterlist:
-                countline += 1
+                if linecount == 0:
+                    linestring = CommonLib.CutBomString(linestring)
+                linecount += 1
+                # --------------------------------------------------
+                # Encodingの変換に失敗する文字が使われている場合は削除する。
+                # --------------------------------------------------
                 try:
-                    # 文字化けしてUnicodeの変換に失敗する文字が使われている場合があるので、失敗する場合は削除する。
-                    # どうせ処理できない文字列はあっても仕方がないと判断。
-                    linestring = unicode(linestring, "shift_jis")
+                    linestring = u"%s" % (unicode(linestring, self._encoding).encode("utf-8"))
                 except UnicodeDecodeError:
-                    print u"UNICODE encoding error! skip line: %s" % (countline)
-                    #continue
-                    # 行をカウントするとずれてしまうので空行として扱うことにする。
-                    linestring = u""
+                    param_linecount = copy.copy(linecount)
+                    param_linestring = copy.copy(linestring)
+                    param_encoding = copy.copy(self._encoding)
+                    linestring = self.OnDecodingErrorFromLoad(param_linecount, param_linestring, param_encoding)
+                    if (isinstance(linestring, str)) or (isinstance(linestring, unicode)):
+                        try:
+                            linestring = u"%s" % (unicode(linestring, self._encoding).encode("utf-8"))
+                        except UnicodeDecodeError:
+                            linestring = u""
+                    else:
+                        linestring = u""
 
-                # 行オブジェクトの作成（行補正機能を有効にする）
-                thisLine = Line(linestring, True)
+                # 行オブジェクトの作成
+                #thisLine = Line(linestring, True)
+                param_linecount = copy.copy(linecount)
+                thisLine = self.OnCreateLineObject(param_linecount, linestring)
+                if not isinstance(thisLine, Line):
+                    raise SyntaxError, "OnCreateLineObject() is an invalid object to return."
 
                 if thisLine.IsType(EnumLineType.BEGINGROUP):
                     countbegingroup += 1
@@ -1583,6 +1681,8 @@ class Masterlist(Group):
 
                 if thisLine.IsType(EnumLineType.ENDGROUP):
                     countendgroup += 1
+                    if countbegingroup < countendgroup:
+                        raise SyntaxError, "The group does not match the beginning and end."
                     # ブロックを作成して紐付ける
                     thisBlock = Block()
                     thisGroup.AddChild(thisBlock)
@@ -1600,12 +1700,13 @@ class Masterlist(Group):
                     # 発生するが、これは後で消すことにする。
                     thisBlock = Block()
                     thisGroup.AddChild(thisBlock)
+
+            if countbegingroup != countendgroup:
+                raise SyntaxError, "The group does not match the beginning and end."
+
         finally:
             # マスタリストを閉じる
             filemasterlist.close()
-
-        if countbegingroup != countendgroup:
-            raise SyntaxError, "The group does not match the beginning and end."
 
         # 行データのない不要なゴミブロックを削除する。
         for waste in self._getWasteBlock():
@@ -1621,7 +1722,7 @@ class Masterlist(Group):
         """
         if os.path.exists(fullpath):
             os.remove(fullpath)
-        filedebug = codecs.open(fullpath, "wU", "shift_jis")
+        filedebug = codecs.open(fullpath, "wU", "utf-8-sig")
         try:
             filedebug.write(self.DebugOutput())
         finally:
@@ -1637,7 +1738,7 @@ class Masterlist(Group):
         """
         if os.path.exists(fullpath):
             os.remove(fullpath)
-        filedebug = codecs.open(fullpath, "wU", "shift_jis")
+        filedebug = codecs.open(fullpath, "wU", "utf-8-sig")
         try:
             filedebug.write(self.DebugSimpleOutput())
         finally:

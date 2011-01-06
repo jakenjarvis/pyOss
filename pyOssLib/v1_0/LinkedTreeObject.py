@@ -137,7 +137,8 @@ class LinkedTreeObject(object):
             return self.__dict__[attr]
         else:
             # _defaultAttr()に登録していないメンバはDataを参照します。
-            return self.__dict__["_data"][attr]
+            if attr in self.__dict__["_data"]:
+                return self.__dict__["_data"][attr]
 
     def __setattr__(self, attr, value):
         if attr in self._defaultAttr():
