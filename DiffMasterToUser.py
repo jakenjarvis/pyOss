@@ -153,9 +153,9 @@ if __name__  == "__main__":
     if len(args) != 2:
         parser.error(u"incorrect number of arguments")
 
-    args0 = unicode(args[0], "shift-jis")
-    args1 = unicode(args[1], "shift-jis")
-    outfilename = unicode(options.outfilename, "shift-jis")
+    args0 = u"%s" % (args[0])
+    args1 = u"%s" % (args[1])
+    outfilename = u"%s" % (options.outfilename)
 
     # 絶対パスの取得
     BaseMasterlistFile = u"%s" % (os.path.abspath(args0))
@@ -227,9 +227,9 @@ if __name__  == "__main__":
         basemasterfile.BeginRecord()
 
         PrintWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u" グループの処理")
+        PrintWriteLine(u" Processing Group")
         PrintWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u"グループの情報を取得中...")
+        PrintWriteLine(u"Getting group information...")
 
         # グループ名の一覧を取得する。
         editgrouplists = editmasterfile.FindDataAllFunc(u"GroupName", lambda v: (v != None))
@@ -268,7 +268,7 @@ if __name__  == "__main__":
                         indexi1 += 1
                         indexj1 += 1
 
-        PrintWriteLine(u"同一グループの検索中...")
+        PrintWriteLine(u"Searching for the same group...")
         for opreditgroup in opetargetgroups:
             for basegroup in basegrouplists:
                 if basegroup.GroupName == opreditgroup.GroupName:
@@ -284,7 +284,7 @@ if __name__  == "__main__":
                 opreditgroup.OperationRule = u"ADD"
 
         DebugWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u"該当するグループの挿入先を検索しています...")
+        PrintWriteLine(u"Searching for the appropriate groups...")
 
         for opreditgroup in opetargetgroups:
             (sort, name) = GetPreviousGroupSortPoint(opreditgroup)
@@ -307,7 +307,7 @@ if __name__  == "__main__":
             oper.AddNewBlank()
             basemasterfile.Operater(oper)
 
-        PrintWriteLine(u"適用するユーザーリストのコマンドを生成しています...")
+        PrintWriteLine(u"Generating for userlist commands...")
 
         proc = basemasterfile.GenerateUserlistFromRecord()
         if proc.ChildCount() >= 1:
@@ -319,9 +319,9 @@ if __name__  == "__main__":
 
 
         PrintWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u" MODsの処理")
+        PrintWriteLine(u" Processing MODs")
         PrintWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u"MODsの情報を取得中...")
+        PrintWriteLine(u"Getting mods information...")
 
         # MODs名の一覧を取得する。
         editmodslists = editmasterfile.FindDataAllFunc(u"LineType", lambda v: ((v & EnumLineType.MODS) == EnumLineType.MODS))
@@ -360,7 +360,7 @@ if __name__  == "__main__":
                         indexi1 += 1
                         indexj1 += 1
 
-        PrintWriteLine(u"同一MODsの検索中...")
+        PrintWriteLine(u"Searching for the same mods...")
         for opreditmod in opetargetmods:
             for basemod in basemodslists:
                 if basemod.LineString == opreditmod.LineString:
@@ -378,14 +378,14 @@ if __name__  == "__main__":
         # --------------------------------------------------
         # MODSのみの実装
         # --------------------------------------------------
-        PrintWriteLine(u"MODsに固有のIDを割り当てます...")
+        PrintWriteLine(u"The unique ID is allocated in MODs...")
         # FindDataでは検索速度が遅すぎるので、一旦ディクショナリに格納する。
         basehashlists = {}
         for basemod in basemodslists:
             if basemod.Data.get(u"ModsUuid", None) != None:
                 basehashlists[basemod.ModsUuid] = basemod
 
-        PrintWriteLine(u"MODsに付随する情報を検査します...")
+        PrintWriteLine(u"The accompanying information on MODs is inspected...")
         for editmod in editmodslists:
             DebugWriteLine(editmod.LineString)
 
@@ -430,7 +430,7 @@ if __name__  == "__main__":
 
 
         DebugWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u"該当するMODsの挿入先を検索しています...")
+        PrintWriteLine(u"Searching for the appropriate mods...")
 
         for opreditmod in editmodslists:
             if opreditmod.Data.get(u"OperationRule", None) != None:
@@ -467,7 +467,7 @@ if __name__  == "__main__":
                     basemasterfile.Operater(oper)
 
         DebugWriteLine(u"--------------------------------------------------")
-        PrintWriteLine(u"適用するユーザーリストのコマンドを生成しています...")
+        PrintWriteLine(u"Generating for userlist commands...")
 
         basemasterfile.EndRecord()
         proc = basemasterfile.GenerateUserlistFromRecord()
@@ -476,6 +476,6 @@ if __name__  == "__main__":
     finally:
         fileoutput.close()
 
-    print u"完了しました。"
+    print u"Completed!"
     print u" Output File : %s" % (OutputFile)
 

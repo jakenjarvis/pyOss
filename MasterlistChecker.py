@@ -241,6 +241,7 @@ if __name__  == "__main__":
             PrintWriteLine(u"--------------------------------------------------")
 
         if loadingflg:
+            AddStackErrors(0, u"A00 Encoding Information", masterfile.Encoding)
             GroupLists = {}
             ModsLists = {}
 

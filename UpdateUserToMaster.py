@@ -67,6 +67,13 @@ if __name__  == "__main__":
                 metavar="FILE",
                 help="specify an output file. default=MASTERLISTFILE")
 
+    parser.add_option("", "--outenc",
+                action="store",
+                type="string",
+                dest="outputencoding",
+                default="",
+                help="specify an output file encoding. default=Encoding of MASTERLISTFILE")
+
     parser.add_option("-d", "--debug",
                 action="store_true",
                 dest="debug",
@@ -79,9 +86,10 @@ if __name__  == "__main__":
     if len(args) != 2:
         parser.error(u"incorrect number of arguments")
 
-    args0 = unicode(args[0], "shift-jis")
-    args1 = unicode(args[1], "shift-jis")
-    outfilename = unicode(options.outfilename, "shift-jis")
+    args0 = u"%s" % (args[0])
+    args1 = u"%s" % (args[1])
+    outfilename = u"%s" % (options.outfilename)
+    outputencoding = u"%s" % (options.outputencoding)
 
     # 絶対パスの取得
     MasterlistFile = u"%s" % (os.path.abspath(args0))
@@ -98,7 +106,6 @@ if __name__  == "__main__":
     if not os.path.exists(UserlistFile):
         parser.error(u"file not exists. \'%s\'" % UserlistFile)
 
-
     # マスタリストの読み込みと解析
     masterfile = Masterlist(MasterlistFile)
     # ユーザーリストの読み込みと解析
@@ -106,6 +113,9 @@ if __name__  == "__main__":
 
     # ユーザーリストの内容をマスタリストへ反映する。
     masterfile.Operater(userfile)
+
     # マスタリストを保存する。
-    masterfile.Save(OutputFile)
+    if len(outputencoding) == 0:
+        outputencoding = masterfile.Encoding
+    masterfile.Save(OutputFile, outputencoding)
 

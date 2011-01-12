@@ -41,6 +41,8 @@ sys.setdefaultencoding('utf-8')
 
 from optparse import OptionParser
 
+from pyOssLib.v1_0.MasterlistLib import *
+
 ################################################################################
 # Global variable
 ################################################################################
@@ -76,6 +78,13 @@ if __name__  == "__main__":
                 metavar="FILE",
                 help="specify an output file")
 
+    parser.add_option("", "--outenc",
+                action="store",
+                type="string",
+                dest="outputencoding",
+                default="",
+                help="specify an output file encoding. default=Encoding of MASTERLISTFILE")
+
     parser.add_option("-g", "--game",
                 type="choice",
                 choices=gameslists.keys(),
@@ -99,6 +108,7 @@ if __name__  == "__main__":
         parser.error(u"invalid option for 'game' parameter")
 
     downloadurl = gameslists[options.game]
+    outputencoding = u"%s" % (options.outputencoding)
 
     # 絶対パスの取得
     masterlistname = options.masterlistname
@@ -107,3 +117,8 @@ if __name__  == "__main__":
     # ダウンロード
     urllib.urlretrieve(downloadurl, MasterlistFile)
 
+    # 出力エンコーディングが指定されているなら以下を実行する。
+    if len(outputencoding) != 0:
+        # マスタリストの読み込みと解析、保存する。
+        masterfile = Masterlist(MasterlistFile)
+        masterfile.Save(encoding=outputencoding)

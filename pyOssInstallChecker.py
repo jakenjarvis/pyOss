@@ -46,7 +46,7 @@ if __name__  == "__main__":
     print u""
 
     iserror = False
-    print u"pyOssインストール状況を確認します。"
+    print u"Checking pyOss installation."
 
     execpath = os.path.dirname(os.path.abspath(__file__))
     print execpath
@@ -54,7 +54,7 @@ if __name__  == "__main__":
     # Python Version check
     if sys.version_info[0] != 2 or sys.version_info[1] != 6:
         iserror = True
-        print u"Pythonのバージョンが2.6ではありません。pyOssは正常に動作しない可能性があります。: %s" % (sys.version_info)
+        print u"The version of Python is not 2.6. There is a possibility that pyOss doesn't operate: %s" % (sys.version_info)
 
     CheckPaths = [
         # Data check
@@ -67,6 +67,8 @@ if __name__  == "__main__":
         # Tools check
         [ u"../pyOss",
             [
+            u"pyOssLib",
+            u"Templates",
             u"MasterlistChecker.py",
             u"MasterlistDownloader.py",
             u"UpdateUserToMaster.py",
@@ -77,10 +79,63 @@ if __name__  == "__main__":
         # pyOssLib check
         [ u"../pyOss/pyOssLib",
             [
+            u"v1_0",
             u"__init__.py",
+            ]
+        ],
+        # pyOssLib/v1_0 check
+        [ u"../pyOss/pyOssLib/v1_0",
+            [
+            u"chardet",
+            u"__init__.py",
+            u"CommonLib.py",
             u"LinkedTreeObject.py",
             u"MasterlistLib.py",
             u"UserlistLib.py",
+            ]
+        ],
+        # pyOssLib/v1_0/chardet check
+        [ u"../pyOss/pyOssLib/v1_0/chardet",
+            [
+            u"docs",
+            u"__init__.py",
+            u"big5freq.py",
+            u"big5prober.py",
+            u"chardistribution.py",
+            u"charsetgroupprober.py",
+            u"charsetprober.py",
+            u"codingstatemachine.py",
+            u"constants.py",
+            u"COPYING",
+            u"escprober.py",
+            u"escsm.py",
+            u"eucjpprober.py",
+            u"euckrfreq.py",
+            u"euckrprober.py",
+            u"euctwfreq.py",
+            u"euctwprober.py",
+            u"gb2312freq.py",
+            u"gb2312prober.py",
+            u"hebrewprober.py",
+            u"jisfreq.py",
+            u"jpcntx.py",
+            u"langbulgarianmodel.py",
+            u"langcyrillicmodel.py",
+            u"langgreekmodel.py",
+            u"langhebrewmodel.py",
+            u"langhungarianmodel.py",
+            u"langthaimodel.py",
+            u"latin1prober.py",
+            u"mbcharsetprober.py",
+            u"mbcsgroupprober.py",
+            u"mbcssm.py",
+            u"sbcharsetprober.py",
+            u"sbcsgroupprober.py",
+            u"setup.py",
+            u"sjisprober.py",
+            u"test.py",
+            u"universaldetector.py",
+            u"utf8prober.py",
             ]
         ],
     ]
@@ -91,10 +146,10 @@ if __name__  == "__main__":
             chkpath = os.path.abspath(os.path.join(execpath, relativepath, file))
             if not os.path.exists(chkpath):
                 iserror = True
-                print u"%s が見つかりません。" % (chkpath)
+                print u"%s  can not be found." % (chkpath)
 
     if not iserror:
-        print u"pyOssのインストール状況の確認が正常に完了しました。"
+        print u"Check pyOss installation is completed successfully."
     else:
-        print u"pyOssのインストール状況が異常です。上記の内容を確認して下さい。"
+        print u"There is an error in the installation of pyOss. Please confirm the above-mentioned content."
 
