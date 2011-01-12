@@ -37,6 +37,9 @@ import os
 import codecs
 import re
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 import uuid
 
 from optparse import OptionParser
@@ -131,7 +134,7 @@ if __name__  == "__main__":
         os.remove(OutputFile)
 
     # 出力開始
-    fileoutput = codecs.open(OutputFile, "wU", "shift_jis")
+    fileoutput = codecs.open(OutputFile, "wU", "utf-8-sig")
     try:
         # 適当に出力用ファンクション作成
         def WriteLine(debug = False, screen = True, file = True, line = u""):
@@ -153,11 +156,8 @@ if __name__  == "__main__":
             return
 
         def PrintWriteLine(line):
-            WriteLine(False, True, True, line)
+            WriteLine(False, False, True, line)
             return
-        #def FileWriteLine(line):
-        #    WriteLine(False, False, True, line)
-        #    return
         def DebugWriteLine(line):
             WriteLine(True, True, True, line)
             return
@@ -179,99 +179,73 @@ if __name__  == "__main__":
             StackErrors[error] += [[count, message]]
 
         # --------------------------------------------------
-        # Check Encoding and Format.
+        # 
         # --------------------------------------------------
-        filemasterlist = open(MasterlistFile, "rU")
-        try:
-            countline = 0
-            begingroupcount = 0
-            endgroupcount = 0
+        masterfile = Masterlist()
 
-            for linestring in filemasterlist:
-                countline += 1
-                try:
-                    linestring = unicode(linestring, "shift_jis")
-                except UnicodeDecodeError:
-                    SkipLines += [countline]
-                    AddStackErrors(countline, u"A01 UNICODE encoding error!", u"Can not be displayed.")
-                    continue
+        def _onEncodingError(linecount, linestring, encoding):
+            message = u"Can not be displayed : %s" % (encoding)
+            AddStackErrors(linecount, u"A01 UNICODE encoding error!", message)
+            return
+        masterfile.OnEncodingErrorFromSave = _onEncodingError
+        masterfile.OnDecodingErrorFromLoad = _onEncodingError
 
-                # 改行、空白の削除
-                linestring = linestring.rstrip("\r\n").lstrip().rstrip()
-                # 正規表現チェック
-                match = [regexBeginGroup.search(linestring)
-                        ,regexEndGroup.search(linestring)
-                        ,regexMods.search(linestring)
-                        ,regexCommand.search(linestring)]
+        def _onCreateLineObject(linecount, linestring):
+            lineobject = Line(linestring)
+            lineobject.LineCount = linecount
 
-                if match == [None, None, None, None]:
-                    # 基本的に上記４つの正規表現のどれかに必ずヒットするはずだが、
-                    # 想定外の行文字列が存在している場合がある。（マスタリストのミスと思われる）
-                    # そこで、直せそうな行はそれっぽく修正する。修正内容があっているかどうかは不明。
-                    matchEx = [regexExBash.search(linestring)
-                            ,regexExComment.search(linestring)
-                            ,regexExMods1.search(linestring)]
-                    if matchEx[0] is not None:
-                        # Bashタグを書いたが、先頭の％を書き忘れちゃった感で一杯の行
-                        # 先頭に％を付け足す。
-                        linecorrectionstring = u"%"
+            linestring = lineobject.LineString
 
-                        AddStackErrors(countline, u"A02 Typographical errors!", u"%s => %s" % (linecorrectionstring, linestring))
-                    elif matchEx[1] is not None:
-                        # コメントを書いたが、「＼バックスラッシュ」と「／スラッシュ」を間違えた感で一杯の行
-                        # ￥マークに書き換える。（英語圏では￥マークは＼バックスラッシュに置き換えられる）
-                        linecorrectionstring = u"\\"
-                        AddStackErrors(countline, u"A02 Typographical errors!", u"%s => %s" % (linecorrectionstring, linestring))
-                    elif matchEx[2] is not None:
-                        # 拡張子を書き忘れた感で一杯の行
-                        # espとみなす。（少なくともピリオドがない行はESPファイルと思われる。）
-                        # 今のところesmではミスなさそう。
-                        linecorrectionstring = u".esp"
-                        AddStackErrors(countline, u"A02 Typographical errors!", u"%s => %s" % (linecorrectionstring, linestring))
-                    else:
-                        if len(linestring) != 0:
-                            AddStackErrors(countline, u"A03 Format unknown error!", u"%s" % (linestring))
-                    continue
+            if lineobject.IsType(EnumLineType.OTHER):
+                matchEx = [regexExBash.search(linestring)
+                        ,regexExComment.search(linestring)
+                        ,regexExMods1.search(linestring)]
+                if matchEx[0] is not None:
+                    # Bashタグを書いたが、先頭の％を書き忘れちゃった感で一杯の行
+                    # 先頭に％を付け足す。
+                    linecorrectionstring = u"%"
 
-                if match[0] is not None:
-                    begingroupcount += 1
-                if match[1] is not None:
-                    endgroupcount += 1
-                if match[2] is not None:
-                    match2 = regexWarnings.search(linestring)
-                    if match2 == None:
-                        AddStackErrors(countline, u"A04 Warning! Please check if this is correct.", u"%s" % (linestring))
+                    AddStackErrors(linecount, u"A02 Typographical errors!", u"%s => %s" % (linecorrectionstring, linestring))
+                elif matchEx[1] is not None:
+                    # コメントを書いたが、「＼バックスラッシュ」と「／スラッシュ」を間違えた感で一杯の行
+                    # ￥マークに書き換える。（英語圏では￥マークは＼バックスラッシュに置き換えられる）
+                    linecorrectionstring = u"\\"
+                    AddStackErrors(linecount, u"A02 Typographical errors!", u"%s => %s" % (linecorrectionstring, linestring))
+                elif matchEx[2] is not None:
+                    # 拡張子を書き忘れた感で一杯の行
+                    # espとみなす。（少なくともピリオドがない行はESPファイルと思われる。）
+                    # 今のところesmではミスなさそう。
+                    linecorrectionstring = u".esp"
+                    AddStackErrors(linecount, u"A02 Typographical errors!", u"%s => %s" % (linecorrectionstring, linestring))
+                else:
+                    if len(linestring) != 0:
+                        AddStackErrors(linecount, u"A03 Format unknown error!", u"%s" % (linestring))
 
-                if match[3] is not None:
+            if lineobject.IsType(EnumLineType.MODS):
+                match2 = regexWarnings.search(linestring)
+                if match2 == None:
                     pass
+                    #AddStackErrors(linecount, u"A04 Warning! Please check if this is correct.", u"%s" % (linestring))
 
-        finally:
-            # マスタリストを閉じる
-            filemasterlist.close()
+            return lineobject
+        masterfile.OnCreateLineObject = _onCreateLineObject
 
-        if begingroupcount != endgroupcount:
-            AddStackErrors(countline, u"A05 Group beginning and ending do not match!", u"BeginGroup:%s != EndGroup:%s" % (begingroupcount ,endgroupcount))
+        loadingflg = False
+        try:
+            masterfile.Load(MasterlistFile)
+            loadingflg = True
+        except BaseException as ex:
+            AddStackErrors(0, u"A05 Load error!", unicode(ex))
             PrintWriteLine(u"--------------------------------------------------")
             PrintWriteLine(u"Could not run some checks!!!!")
             PrintWriteLine(u"--------------------------------------------------")
-        else:
-            # --------------------------------------------------
-            # Check Group and Mods.
-            # --------------------------------------------------
-            # マスタリストの読み込みと解析
-            masterfile = Masterlist(MasterlistFile)
 
+        if loadingflg:
             GroupLists = {}
             ModsLists = {}
 
-            linecount = 0
             for object in masterfile.EachRecursion():
                 if isinstance(object, Line):
-                    linecount += 1
-                    if linecount in SkipLines:
-                        linecount += 1
-                    object.LineCount = linecount
-
                     if object.IsType(EnumLineType.MODS):
                         if object.LineString in ModsLists:
                             ModsLists[object.LineString] += [object]
@@ -279,12 +253,12 @@ if __name__  == "__main__":
                             ModsLists[object.LineString] = [object]
 
                         if object.GetParentGroup().GroupName == None:
-                            AddStackErrors(countline, u"B01 Warning! There are lines that do not belong to the group.", u"%s" % (object.LineString))
+                            AddStackErrors(object.LineCount, u"B01 Warning! There are lines that do not belong to the group.", u"%s" % (object.LineString))
 
                 elif isinstance(object, Block):
-                    object.LineCount = linecount
+                    pass
+
                 elif isinstance(object, Group):
-                    object.LineCount = linecount
                     if object.GroupName in GroupLists:
                         GroupLists[object.GroupName] += [object]
                     else:
@@ -293,7 +267,8 @@ if __name__  == "__main__":
             for key, value in GroupLists.iteritems():
                 if len(value) >= 2:
                     for group in value:
-                        AddStackErrors(group.LineCount, u"B02 Duplicate groups error!", u"%s" % (group.GroupName))
+                        linecount = group.GetTopChild().GetTopChild().LineCount
+                        AddStackErrors(linecount, u"B02 Duplicate groups error!", u"%s" % (group.GroupName))
 
             for key, value in ModsLists.iteritems():
                 if len(value) >= 2:

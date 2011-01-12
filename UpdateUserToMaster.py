@@ -37,6 +37,9 @@ import os
 import codecs
 import re
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 import uuid
 
 from optparse import OptionParser

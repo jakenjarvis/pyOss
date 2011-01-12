@@ -37,6 +37,9 @@ import os
 import codecs
 import re
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 import uuid
 import difflib
 
@@ -169,7 +172,7 @@ if __name__  == "__main__":
         os.remove(OutputFile)
 
     # 出力開始
-    fileoutput = codecs.open(OutputFile, "wU", "shift_jis")
+    fileoutput = codecs.open(OutputFile, "wU", "utf-8-sig")
     try:
         # 適当に出力用ファンクション作成
         def WriteLine(debug = False, screen = True, file = True, line = u""):

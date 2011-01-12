@@ -36,6 +36,9 @@ import sys
 import os
 import urllib
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 from optparse import OptionParser
 
 ################################################################################
@@ -98,7 +101,7 @@ if __name__  == "__main__":
     downloadurl = gameslists[options.game]
 
     # 絶対パスの取得
-    masterlistname = unicode(options.masterlistname, "shift-jis")
+    masterlistname = options.masterlistname
     MasterlistFile = u"%s" % (os.path.abspath(masterlistname))
 
     # ダウンロード
