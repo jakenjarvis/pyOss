@@ -126,6 +126,11 @@ Installation
         C:\Games\Oblivion\Data\pyOss\pyOssLib
         C:\Games\Oblivion\Data\pyOss\pyOssLib\v1_0
 
+4. Running the installation checker.
+    Run 'pyOssInstallChecker.py'
+    If you see this message, you are a successful installation is complete.
+        "Check pyOss installation is completed successfully."
+
 
 
 pyOss tools
