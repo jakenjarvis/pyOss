@@ -37,15 +37,21 @@ __all__       = [
 # Import
 ################################################################################
 import sys
-import codecs
-
 reload(sys)
 sys.setdefaultencoding('utf-8')
+import codecs
+
 
 ################################################################################
 # Global variable
 ################################################################################
 def CutBomString(linestring):
+    """
+        *linestring* で指定した文字列の先頭にBOMが存在する場合、BOMを削除した文字列を返却する。
+        ファイルの先頭文字列以外でこの関数を使った場合、BOM以外の文字列を削除する可能性があるため、注意が必要です。
+
+        :param string linestring: 対象の文字列
+    """
     ret = linestring
     if linestring[:3] == codecs.BOM_UTF8:
         # UTF-8 BOM

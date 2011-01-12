@@ -42,13 +42,12 @@ __all__       = [
 # Import
 ################################################################################
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import os
 import codecs
 import re
 import copy
-
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 from chardet.universaldetector import UniversalDetector
 
@@ -713,7 +712,7 @@ class Masterlist(Group):
         Group.__init__(self, None, None, False)
 
         self._fullpathfilename = fullpathfilename.lstrip().rstrip()
-        self._encoding = "cp1252"
+        self._encoding = "utf-8-sig"
         self._recording = False
         self._archiverecord = []
 
@@ -738,6 +737,14 @@ class Masterlist(Group):
             :return: このマスタリストオブジェクトに登録されたマスタリストファイル名を返却します。
         """
         return self._fullpathfilename
+
+    @property
+    def Encoding(self):
+        """
+            :rtype: string
+            :return: このマスタリストに登録されたエンコーディング文字列を返却します。これは \ :meth:`Load`\ 及び \ :meth:`Save`\ メソッドで最後に指定したエンコーディングを返却します。
+        """
+        return self._encoding
 
     def AddChildToTop(self, leaf):
         """ .. warning:: マスタリストオブジェクトでは、このメソッドを利用できません。呼び出すと例外が発生します。 """
@@ -1304,12 +1311,12 @@ class Masterlist(Group):
             BeginRecordを呼び出した後に、マスタリストへの操作を行った場合、内部に操作記録を残します。
             この操作記録から、 \ :meth:`GenerateUserlistFromRecord`\ を使ってユーザーリスト定義を作ることができます。
 
-            マスタリストへの操作には、以下の操作が該当します。
+            記録するマスタリストへの操作は、以下の操作が該当します。
             「 \ :meth:`MoveBefore`\ \ :meth:`MoveAfter`\ \ :meth:`MoveTop`\ \ :meth:`MoveBottom`\ 」
             「 \ :meth:`InsertBefore`\ \ :meth:`InsertAfter`\ \ :meth:`InsertTop`\ \ :meth:`InsertBottom`\ 」
             「 \ :meth:`AppendLine`\ \ :meth:`ReplaceLine`\ 」
 
-            また、内部でInsertかMoveのどちらかが切り替わるReplace文も該当します。（実際に内部で選択した操作が記録されます。）
+            また、内部でInsertかMoveのどちらかに切り替えるReplace文も該当します。（実際に内部で実行した操作が記録されます。）
             「 \ :meth:`ReplaceBefore`\ \ :meth:`ReplaceAfter`\ \ :meth:`ReplaceTop`\ \ :meth:`ReplaceBottom`\ 」
 
             また、ユーザーリスト操作による「 \ :meth:`Operater`\ 」による変更も該当します。
@@ -1338,7 +1345,7 @@ class Masterlist(Group):
             操作方法を意識しない限り、BOSSでは動作しない記述が吐き出されますので注意が必要です。（特にグループの操作）
             pyOssLibでは、GenerateUserlistFromRecordの出力は全てそのまま操作可能です。
 
-            操作記録について詳しくは \ :meth:`BeginRecord`\  を参照して下さい。
+            操作記録について詳しくは \ :meth:`BeginRecord`\ を参照して下さい。
             生成したユーザーリスト定義は \ :class:`UserlistLib.Userlist`\ クラスオブジェクトとして返却します。
 
             :rtype: UserlistLib.Userlist

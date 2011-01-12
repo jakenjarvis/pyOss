@@ -41,18 +41,18 @@ __all__       = [
 # Import
 ################################################################################
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import os
 import codecs
 import re
 import copy
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 from chardet.universaldetector import UniversalDetector
 
 import CommonLib
 from LinkedTreeObject import LinkedTreeObject
+
 
 ################################################################################
 # Global variable
@@ -628,7 +628,7 @@ class Userlist(LinkedTreeObject):
         LinkedTreeObject.__init__(self)
 
         self._fullpathfilename = fullpathfilename.lstrip().rstrip()
-        self._encoding = "cp1252"
+        self._encoding = "utf-8-sig"
 
         if len(self._fullpathfilename) != 0:
             self.Load(self._fullpathfilename)
@@ -651,6 +651,14 @@ class Userlist(LinkedTreeObject):
             :return: このユーザーリストオブジェクトに登録されたユーザーリストファイル名を返却します。
         """
         return self._fullpathfilename
+
+    @property
+    def Encoding(self):
+        """
+            :rtype: string
+            :return: このユーザーリストに登録されたエンコーディング文字列を返却します。これは \ :meth:`Load`\ 及び \ :meth:`Save`\ メソッドで最後に指定したエンコーディングを返却します。
+        """
+        return self._encoding
 
     def UserlistOutput(self):
         """
